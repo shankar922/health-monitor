@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="card">
+    <h2>Health Monitoring Dashboard</h2>
+
+    <form method="POST">
+        <input type="number" name="heart_rate" placeholder="Heart Rate" required>
+        <input type="number" name="bp" placeholder="Blood Pressure" required>
+        <input type="number" name="sugar" placeholder="Sugar Level" required>
+        <button type="submit">Check Health</button>
+    </form>
+
+    {% if risk %}
+        <h3>{{ risk }}</h3>
+    {% endif %}
+
+    <p>
+        <a href="/history">View History</a> |
+        <a href="/logout">Logout</a>
+    </p>
+</div>
+
+</body>
+</html>

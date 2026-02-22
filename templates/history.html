@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Health History</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h2 style="text-align:center;">Daily Health History</h2>
+
+<table>
+    <tr>
+        <th>Heart Rate</th>
+        <th>Blood Pressure</th>
+        <th>Sugar Level</th>
+        <th>Risk Level</th>
+    </tr>
+
+    {% for row in records %}
+    <tr>
+        <td>{{ row["heart_rate"] }}</td>
+        <td>{{ row["bp"] }}</td>
+        <td>{{ row["sugar"] }}</td>
+        <td>{{ row["risk"] }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<p style="text-align:center;">
+    <a href="/dashboard">Back to Dashboard</a>
+</p>
+
+</body>
+</html>
