@@ -9,7 +9,7 @@
 <div class="card">
     <h2>Health Monitoring Dashboard</h2>
 
-    <form method="POST">
+    <form action="{{ url_for('check_health') }}" method="POST">
         <input type="number" name="heart_rate" placeholder="Heart Rate" required>
         <input type="number" name="bp" placeholder="Blood Pressure" required>
         <input type="number" name="sugar" placeholder="Sugar Level" required>
