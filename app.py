@@ -125,33 +125,40 @@ if __name__ == "__main__":
     # ----------------------------
 # Check Health Route
 # ----------------------------
-@app.route("/check_health", methods=["POST"])
+@app.route("/check_health", methods=["GET", "POST"])
 def check_health():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
     if request.method == "POST":
-        heart_rate = request.form["heart_rate"]
-        blood_pressure = request.form["blood_pressure"]
+        try:
+            heart_rate = request.form.get("heart_rate")
+            blood_pressure = request.form.get("blood_pressure")
 
-        # Simple health logic
-        if int(heart_rate) > 100:
-            risk = "High Risk"
-        else:
-            risk = "Normal"
+            if not heart_rate or not blood_pressure:
+                return "Please fill all fields"
 
-        # Save to database
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
+            heart_rate = int(heart_rate)
 
-        cursor.execute(
-            "INSERT INTO health_data (user_id, heart_rate, blood_pressure, risk) VALUES (?, ?, ?, ?)",
-            (session["user_id"], heart_rate, blood_pressure, risk),
-        )
+            if heart_rate > 100:
+                risk = "High Risk"
+            else:
+                risk = "Normal"
 
-        conn.commit()
-        conn.close()
+            conn = sqlite3.connect("database.db")
+            cursor = conn.cursor()
 
-        return render_template("result.html", risk=risk)
+            cursor.execute(
+                "INSERT INTO health_data (user_id, heart_rate, blood_pressure, risk) VALUES (?, ?, ?, ?)",
+                (session["user_id"], heart_rate, blood_pressure, risk),
+            )
+
+            conn.commit()
+            conn.close()
+
+            return render_template("result.html", risk=risk)
+
+        except Exception as e:
+            return f"Error occurred: {str(e)}"
 
     return render_template("check_health.html")
