@@ -120,3 +120,38 @@ def logout():
 # ----------------------------
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+    # ----------------------------
+# Check Health Route
+# ----------------------------
+@app.route("/check_health", methods=["GET", "POST"])
+def check_health():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        heart_rate = request.form["heart_rate"]
+        blood_pressure = request.form["blood_pressure"]
+
+        # Simple health logic
+        if int(heart_rate) > 100:
+            risk = "High Risk"
+        else:
+            risk = "Normal"
+
+        # Save to database
+        conn = sqlite3.connect("database.db")
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "INSERT INTO health_data (user_id, heart_rate, blood_pressure, risk) VALUES (?, ?, ?, ?)",
+            (session["user_id"], heart_rate, blood_pressure, risk),
+        )
+
+        conn.commit()
+        conn.close()
+
+        return render_template("result.html", risk=risk)
+
+    return render_template("check_health.html")
