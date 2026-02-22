@@ -1,108 +1,122 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, url_for
 import sqlite3
+import os
 
 app = Flask(__name__)
-app.secret_key = "health_secret_key"
+app.secret_key = "supersecretkey"
 
-# ---------------- DATABASE CONNECTION ----------------
-def get_db_connection():
+
+# ----------------------------
+# Database Initialization
+# ----------------------------
+def init_db():
     conn = sqlite3.connect("database.db")
-    conn.row_factory = sqlite3.Row
-    return conn
+    cursor = conn.cursor()
 
-# ---------------- REGISTER ----------------
+    # Create users table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE,
+            password TEXT
+        )
+    """)
+
+    # Create health data table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS health_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            heart_rate INTEGER,
+            blood_pressure TEXT,
+            risk TEXT
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+# 🔥 IMPORTANT: Run DB creation when app loads (works on Render)
+init_db()
+
+
+# ----------------------------
+# Home Route
+# ----------------------------
+@app.route("/")
+def home():
+    if "user_id" in session:
+        return render_template("dashboard.html")
+    return redirect(url_for("login"))
+
+
+# ----------------------------
+# Register Route
+# ----------------------------
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        name = request.form["name"]
         email = request.form["email"]
         password = request.form["password"]
 
-        conn = get_db_connection()
-        conn.execute(
-            "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-            (name, email, password)
-        )
-        conn.commit()
-        conn.close()
+        conn = sqlite3.connect("database.db")
+        cursor = conn.cursor()
 
-        return redirect("/login")
+        try:
+            cursor.execute(
+                "INSERT INTO users (email, password) VALUES (?, ?)",
+                (email, password),
+            )
+            conn.commit()
+            conn.close()
+            return redirect(url_for("login"))
+        except sqlite3.IntegrityError:
+            conn.close()
+            return "Email already exists!"
 
     return render_template("register.html")
 
-# ---------------- LOGIN ----------------
-@app.route("/", methods=["GET", "POST"])
+
+# ----------------------------
+# Login Route
+# ----------------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         email = request.form["email"]
         password = request.form["password"]
 
-        conn = get_db_connection()
-        user = conn.execute(
+        conn = sqlite3.connect("database.db")
+        cursor = conn.cursor()
+
+        user = cursor.execute(
             "SELECT * FROM users WHERE email=? AND password=?",
-            (email, password)
+            (email, password),
         ).fetchone()
+
         conn.close()
 
         if user:
-            session["user_id"] = user["id"]
-            return redirect("/dashboard")
+            session["user_id"] = user[0]
+            return redirect(url_for("home"))
+        else:
+            return "Invalid email or password"
 
     return render_template("login.html")
 
-# ---------------- DASHBOARD ----------------
-@app.route("/dashboard", methods=["GET", "POST"])
-def dashboard():
-    if "user_id" not in session:
-        return redirect("/login")
 
-    risk = None
-
-    if request.method == "POST":
-        heart_rate = int(request.form["heart_rate"])
-        bp = int(request.form["bp"])
-        sugar = int(request.form["sugar"])
-
-        # Risk logic
-        if heart_rate < 90 and bp < 120 and sugar < 140:
-            risk = "LOW RISK 🟢"
-        elif heart_rate < 110 and bp < 140:
-            risk = "MEDIUM RISK 🟡"
-        else:
-            risk = "HIGH RISK 🔴 ALERT!"
-
-        # Save to database
-        conn = get_db_connection()
-        conn.execute(
-            "INSERT INTO health (user_id, heart_rate, bp, sugar, risk) VALUES (?, ?, ?, ?, ?)",
-            (session["user_id"], heart_rate, bp, sugar, risk)
-        )
-        conn.commit()
-        conn.close()
-
-    return render_template("dashboard.html", risk=risk)
-
-# ---------------- HISTORY ----------------
-@app.route("/history")
-def history():
-    if "user_id" not in session:
-        return redirect("/login")
-
-    conn = get_db_connection()
-    records = conn.execute(
-        "SELECT heart_rate, bp, sugar, risk FROM health WHERE user_id = ?",
-        (session["user_id"],)
-    ).fetchall()
-    conn.close()
-
-    return render_template("history.html", records=records)
-
-# ---------------- LOGOUT ----------------
+# ----------------------------
+# Logout
+# ----------------------------
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect("/login")
+    return redirect(url_for("login"))
 
+
+# ----------------------------
+# Run App (Local Only)
+# ----------------------------
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
