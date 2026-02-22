@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # ----------------------------
 # Check Health Route
 # ----------------------------
-@app.route("/check_health", methods=["GET", "POST"])
+@app.route("/check_health", methods=["POST"])
 def check_health():
     if "user_id" not in session:
         return redirect(url_for("login"))
